@@ -1,0 +1,280 @@
+Django
+
+*본 게시물은 Django document의 튜토리얼을 작성자의 입맛대로 작성한 것입니다.
+출처 : https://docs.djangoproject.com/en/4.0/intro/tutorial01/
+
+### Chapter1 : request와 response의 흐름 ###
+1. project 생성
+django-admin startproject (project 이름)
+
+프로젝트를 만들면 아래와 같은 파일들이 생성된다.
+mysite
+	- mysite : 프로젝트를 위한 실제 python 패키지 저장됨, mysite.urls의 식으로 프로젝트 어디나서 파이썬 패키지를 improt할 수 있음
+		-- __init__.py : 빈 파일, 존재의 이유는 python으로 하여금 해당 디렉토리를 패키지처럼 다루라고 알려주기 위함
+		-- asgi.py : 비동기식 서버 게이트웨이 인터페이스
+		-- settings.py : 프로젝트의 환경 및 구성
+		-- urls.py : url 선언
+		-- wsgi.py : 웹 서버 게이트웨이 인터페이스
+	- manage.py : django 프로젝트와 상호작용하는 커맨드라인 유틸리티
+
+
+2. 서버 시작
+2-1) project 이름의 디렉토리로 이동
+2-2) python manage.py runserver
+
+기본적으로 8000 포트로 열림
+포트를 변경하고 싶다면 python manage.py runserver (원하는 포트번호) 형식으로 명령어를 입력하면 됨
+
+
+3. 프로젝트에 App 생성
+python manage.py startapp polls
+
+App을 만들면 아래와 같은 파일들이 생성된다. (위에서 설명한 것은 제외시킴)
+mysite
+	-polls
+		-- migrations : model을 수정할 때 마다 자동으로 데이터베이스를 업데이트 하게 해줄 migration 파일들을 저장
+			--- __init__.py
+		-- __init__.py
+		-- admin.py
+		-- apps.py
+		-- models.py
+		-- tests.py
+		-- views.py : 요청을 처리하는 곳
+	- db.sqlite3
+
+Tip : vs code를 이용중이라면 터미널 분할을 이용해서 명령어를 작성하면 된다.
+
+
+4. views.py에 요청이 오면 응답하도록 설정
+from django.http import HttpResponse
+def index(request):
+    return HttpResponse("Hello, world. You're at the polls index.")
+해석 : django.http에서 http응답 기능을 import하고 index라는 define을 만든다.
+이 index define은 요청에 대하여 http응답("hello~")을 한다.
+
+
+5. 해당 polls/views.py로 요청이 가기 위한 경로 구성
+[ polls/urls.py ] (urls.py 파일을 새로 생성한다.)
+from django.urls import path
+from . import views
+urlpatterns = [
+    path('', views.index, name='index'),
+]
+해석 : path()의 첫번째 매개변수를 비워두면 /를 의미함
+[ mysite/urls.py ]
+from django.contrib import admin
+from django.urls import include, path
+urlpatterns = [
+    path('polls/', include('polls.urls')),
+    path('admin/', admin.site.urls),
+]
+해석 : 다른 URLconf를 가져올려면 django.urls에 include을 import하고 include('다른 앱 이름.urls')의 형태로 path()에 추가한다.
+즉, polls/의 경로로 가는 것은 polls/urls.py 파일로 경로를 찾으라는 것이다.
+
+검증 : http://127.0.0.1:8000/polls에 들어가면 "hello~"라는 문자열이 떠야한다.
+
+urlpatterns의 path()의 인수들
+1) route 인수
+path('polls/')이 부분을 의미, 일치하는 패턴이 있는지 순서대로 비교함
+2) view 인수
+path(views.index)이 부분, 특정한 view 부분을 찾아감
+3) name 인수
+path(name='index')이 부분, 템플릿을 포함한 django 어디에서나 참조할 수 있음
+4) kwargs 인수
+목표한 view에 사전형으로 전달됨
+
+
+### Chapter2 : 데이터베이스 ###
+* 참고 : 기본 SQLite DB를 이용한다.
+6.  timezone변경
+mysite/settings.py에서 TIME_ZONE항목을 UTC->Asia/Seoul로 변경
+
+settings.py의 INSTALLED_APPS 설명
+* 아래의 앱들은 필요에 따라서 지우면 됨 (필수가 아님)
+- django.contrib.admin : 관리용 사이트
+- django.contrib.auto - 인증 시스템
+- django.contrib.contenttypes : 컨텐츠 타입을 위한 프레임워크
+- django.contrib.sessions : 세션 프레임워크
+- django.contrib.message : message 프레임워크
+- django.contrib.staticfiles - 정적 파일 관리 프레임워크
+
+
+7. 데이터베이스 테이블을 만들기
+INSTALLED_APPS 중 몇몇은 최소한 하나 이상의 데이터베이스 테이블이 필요하기 때문에 만듬
+command : python manage.py migrate
+
+migrate 명령 설명 : INSTALLED_APPS를 확인하는 명령어로 mysite/settings.py 파일의 데이터베이스 설정과 앱과 함께 제공된 데이터베이스 마이그레이션에 따라 필요한 데이터베이스 테이블을 설정하고 생성함
+즉, 변경사항들을 확인하고 필요한 것들(DB Table)이 있으면 추가하는 명령어
+
+
+8. Model 생성
+Model이란? 
+- 부가적인 메타데이터를 가진 데이터베이스의 구조
+- 데이터에 대한 하나의 확실한 정보 출처
+- 데이터의 필수 필드 및 동작이 포함됨
+- 데이터 모델을 한 곳에 정의하고 데이터 모델을 자동으로 파생함
+*메타데이터 : 데이터에 대한 데이터, 예: 이름, 수정 날짜 및 시간, 저장소 크기, 폴터의 이름
+
+두가지 Model을 생성하고 다음과 같은 각각의 Field를 만든다.
+Model = Question, Choice
+Field = 질문, 게시날짜, 선택한 텍스트, 투표 집계
+1) Question - 질문, 게시날짜
+2) Choice - 선택한 텍스트, 투표 집계
+[ polls/models.py ]
+from django.db import models
+class Question(models.Model):
+    question_text = models.CharField(max_length=200)
+    pub_date = models.DateTimeField('date published')
+class Choice(models.Model):
+    question = models.ForeignKey(Question, on_delete=models.CASCADE)
+    choice_text = models.CharField(max_length=200)
+    votes = models.IntegerField(default=0)
+해석 : Question Class는 models.Models을 상속받아서 모델을 만듭니다.
+그리고 Class variable로 question_text, pub_date를 만들었다.
+* votes : 투표하다
+
+Common Field Type)
+- CharField : 고정 길이의 문자열을 정의할 때 사용하는 필드, max_legth를 지정해줘야 함
+- TextField : 긴 문자열에 사용하는 필드
+- IntegerField : 정수값을 저장하는 필드
+- DateField, DateTimeField : 날짜와 날짜시간 정보를 저장하는 필드, default 매개변수를 선언할 수 있음
+- EmailField : 이메일 주소를 저장하고 검증하는 필드
+- FIleField, ImageField : 각각 파일과 	이미지를 업로드하기 위해 사용하는 필드
+- AutoField : 자동적으로 증가하는 IntegerField의 특별한 타입의 필드
+- ForeignKey : 다른 데이터베이스 모델과 일대다 관계를 지정하기 위한 필드
+- ManyToManyField : 다대다 관계를 지정하기 위한 필드
+
+
+9. 모델 활성화 
+1) project에 polls App이 있다는 것을 알리기
+mysite/settings.py의 INSTALLED_APPS에 polls.apps.PollsConfig를 추가한다.
+이는 polls/apps.py에 있는 PollsConfig 클래스를 INSTALLED_APPS list에 추가하는 것이다.
+2) makemigrations명령어를 통해 app의 모델 변경 사항을 체크한다.
+python manage.py makemigrations polls
+해당 명령어를 입력하고나면 command 창에 Question, choice 모델이 생성되었다고 뜰 것이다.
+3) 찾은 model을 생성
+python manage.py sqlmigrate polls 0001
+검증 : 명령어를 입력하고 나면 CREATE TABLE ~ 하면서 polls_question, polls_choice라는 로그들이 포함되어 있어야 한다.
+단, sqlite를 이외의 다른 DB를 사용할경우 다른 출력 로그가 나올 수 있다.
+4) 생성된 것을 db에 반영
+python manage.py migrate
+
+*makemigrations과 migrate
+makemigrations : migrate할 것을 찾는다, 변경사항이나 새로 만들어진 모델을 찾는다.
+migrate : makemigrations으로 찾은 것을 db에 반영시킨다.
+*makemigrations 명령어를 입력하면..
+지정한 app의 디렉토리에 migrations이라는 디렉토리가 생성된다.
+해당 디렉토리는 변경 사항을 체크하고 변경사항이 존재하면 0001_initial.py파일의 형태로 변경사항을 저장해둔다.
+
+Model을 만드는3가지 지침
+1) models.py에서 Model을 변경
+2) python manage.py makemigrations을 통해 변경사항에 대한 마이그레이션 생성
+3) python manage.py migrate을 통해 변경사항을 데이터베이스에 적용
+
+마이그레이션을 만드는 명령과 적용하는 명령어 분리된 이유 (makemigrations, migrate)
+: 버전 관리 시스템에서 마이그레이션을 커밋하고 앱과 함께 출시할 수 있도록 하기 위함
+
+
+10. Django API
+*API : Application Programming Interface(응용 프로그래밍 인터페이스)의 약자로 컴퓨터나 컴퓨터 프로그램 사이의 연결이다.
+$ python manage.py shell
+>>> from polls.models import Question, Choice #model을 import
+>>> Question.objects.all() #QuerySets을 확인한다.
+*QuerySets : 전달받은 model의 object 목록
+
+#새 질문을 생성한다.
+# 시간은 django.utils의 timezone을 이용한다.
+>>> from django.utils import timezone
+>>> q = Question(question_text="What's new?" pub_date=timezone.localtime())
+>>> q.save()
+
+>>> q.id #1이라 떠야 함
+>>> q.question_text #작성한게 잘 뜨나 확인
+>>> q.pub_date #한국 시간이 잘 뜨나 확인
+
+#만든 질문을 수정
+>>> q.question_text = "what's up?"
+>>> q.save()
+
+#데이터베이스의 모든 question을 표시
+>>> Question.objects.all() #<QuerySet [<Question: Question object (1)>]>이렇게 떠야 함
+
+
+11. Model에 method 추가
+*__str__() method : 클래스 자체의 내용을 출력하고 싶을 때 형식을 지정하는 method
+[ polls/models.py ]
+import datetime
+from django.db import models
+from django.utils import timezone
+
+class Question(models.Model):
+    question_text = models.CharField(max_length=200)
+    pub_date = models.DateTimeField('date published')
+    def __str__(self):
+        return self.question_text
+    def was_published_recently(self):
+        return self.pub_date >= timezone.localtime() - datetime.timedelta(days=1)
+
+class Choice(models.Model):
+    question = models.ForeignKey(Question, on_delete=models.CASCADE)
+    choice_text = models.CharField(max_length=200)
+    votes = models.IntegerField(default=0)
+    def __str__(self):
+        return self.choice_text
+<수정사항>
+1) Question, Choice class 각각 클래스 호출 시 뜨는 것을 추가함 (__str__~)
+2) Question에 was_published_recently라는 method를 추가함
+이는 Question로 만든 object가 1day가 지날 경우를 감지하기 위함임
+
+
+12. Django API
+$ python manage.py shell
+>>> from polls.models import Choice, Question
+>>> from django.utils import timezone
+
+#__str__ method 작동확인 test
+>>> Question.objects.all() #<QuerySet [<Question: What's up?>]>이라고 떠야 함
+
+#FIlter의 기능들 : id값을 이용한 확인, 시작단어를 통한 확인
+>>> Question.objects.filter(id=1) #위와 독같이 떠야 함
+>>> Question.objects.filter(question_text__startswith='What') #위와 같이 떠야 함
+#년도로 검색
+>>> current_year = timezone.localtime().year
+>>> Question.objects.get(pub_date__year=current_year) #위와 같이 떠야 함
+단, 2022년도에 만들어진 object가 2개 이상 있을 경우 it returned 2!이란 error가 뜬다.
+#없는 것 호출할 경우
+>>> Question.objects.get(id=100) #Question matching query does not exist.이렇게 오류가 떠야 함
+단, object가 100개 이상 있을 경우 정상적으로 출력될 수 있다.
+
+#pk(primary key, 기본 키)를 통한 검색
+>>> Question.objects.get(pk=1) #위위와 같이 떠야 함
+사실상 Question.objects.get(id=1)과 동작이 동일하다.
+
+#was_published_recently method 작동확인 test
+>>> q = Question.objects.get(pk=1) #q에 primary key가 1인 object를 지정한다.
+>>> q.was_published_recently() #True가 떠야 함
+이는 primary key=1라는 object가 생성된지 1day가 지났는지 안지났는지 확인하는 method이다.
+지날 경우 False, 지나지 않을 경우 True
+
+#pk=1인 object에 choice 항목 만들기
+>>> q.choice_set.all() #QuerySet List에 아무것도 없는거 확인
+>>> q.choice_set.create(choice_text='Not much', votes=0)
+>>> q.choice_set.create(choice_text='The sky', votes=0)
+>>> c = q.choice_set.create(choice_text='Just hacking again', votes=0)
+
+# Choice object는 Question Object의 API 액세스 권한이 있다는 증명
+>>> c.question #<Question: What's up?>이 뜸
+#반대로 Question Object는 Choice Object에 액세스 권한이 있다는 증명
+>>> q.choice_set.all() #<QuerySet [<Choice: Not much>, <Choice: The sky>, <Choice: Just hacking again>]>이렇게 뜰꺼임
+>>> q.choice_set.count() #3이 뜰꺼임
+
+#pub_date가 올해(2022)인 Question에 대한 Choice 찾기
+>>> Choice.objects.filter(question__pub_date__year=current_year) #<QuerySet [<Choice: Not much>, <Choice: The sky>, <Choice: Just hacking again>]>이렇게 뜰꺼임
+
+# Choice 중 1개를 식제
+c = q.choice_set.filter(choice_text__startswith='Just hacking')
+c.delete()
+
+
+
+
