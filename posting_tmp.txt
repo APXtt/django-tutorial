@@ -276,5 +276,112 @@ c = q.choice_set.filter(choice_text__startswith='Just hacking')
 c.delete()
 
 
+### Chapter3 : 관리 페이지 ###
+관리페이지란?
+사이트관리자를 위한 공개 사이트의 컨텐츠를 편집할 수 있는 통합적인 인터페이스
+
+13. 관리 페이지 진입
+1) 관리자 생성
+$ python manage.py createsuperuser
+Username : (원하는 이름)
+Email address : (원하는 이메일)
+Password : (원하는 패스워드)
+Superuser created successfully.라고 떴으면 생성이 완료된 것이다.
+
+2) 관리 페이지 진입
+기존페이지주소/admin/ 의 형태로 진입하자.
+- 관리페이지에 Username / Password는 아까 생성한 그것을 입력하면 된다.
+- 관리페이지의 언어를 한국어로 바꾸고싶다면 [mysite/settings.py] 파일의 LANGUAGE_CODE를
+ko로 수정하자.
+- 로그인 시 GROUPs과 USERs가 보일 것이다. 이것은 django.contrib.auth 모듈에서 제공되는 인증 프레임워크이다.
+
+
+14. poll을 관리페이지에 추가하기
+1) poll을 추가 하기 위해 Question 대상 관리 인터페이스가 있다고 알려야 한다.
+[ polls/admin.py ]
+from .models import Question
+admin.site.register(Question)
+위의 구문을 추가한다.
+
+2) 관리페이지를 새로고침
+사이트 관리에 POLLS-Questions이 생성된 것을 볼 수 있다.
+이후 Questions에 들어가게되면 기존에 생성했던 Questions의 Object를 볼 수 있다.
+Object를 클릭한다면 Question text / Date Published에 날짜, 시각이 있다.
+즉, 생성했던 CharField, DateTImeField가 html 위젯으로 표현되었다.
+*관리 페이지에서 값을 수정하고 저장을 누를 시 history에 기록이 된다.
+
+
+### Chapter3 : views ###
+
+15. 만들어볼 views
+- 질문 페이지 : 최근의 질문들 표시
+- 질문의 세부 페이지 : 질문의 내용과 투표할 수 있는 서식을 표시
+- 질문 결과 페이지 : 질문에 대한 결과를 표시
+- 투표 기능 : 특정 질문의 특정 선택을 할 수 있는 기능
+
+16. 뼈대 페이지 만들기 (뼈대 View 만들기)
+1) view 생성
+[ polls/views.py ]
+def detail(request, question_id): #질문 페이지
+    return HttpResponse("You're looking at question %s." % question_id)
+def results(request, question_id): #질문 결과 페이지
+    response = "You're looking at the results of question %s."
+    return HttpResponse(response % question_id)
+def vote(request, question_id): #질문 세부 페이지 (투표페이지)
+    return HttpResponse("You're voting on question %s." % question_id)
+2) url 추가
+[ polls/urls.py ]
+urlpatterns = [
+    path('', views.index, name='index'), # /polls
+    path('<int:question_id>/', views.detail, name='detail'), #질문 페이지 /polls/<question_id>/
+    path('<int:question_id>/results/', views.results, name='results'), #질문 결과 페이지 /polls/<question_id>/results
+    path('<int:question_id>/vote/', views.vote, name='vote'), #질문 세부 페이지 /polls/<question_id>/vote
+]
+3) 검증
+(웹 페이지 IP:포트번호)/polls/(아무숫자)/
+(웹 페이지 IP:포트번호)/polls/(아무숫자)/results
+(웹 페이지 IP:포트번호)/polls/(아무숫자)/vote
+의 형태로 페이지를 진입하면 You're looking at question 100.와 같이 떠야한다.
+
+17. View 살 붙이기 (보완)
+1. 코드 수정
+[ polls/views.py ]
+from .models import Question
+def index(request):
+    latest_question_list = Question.objects.order_by('-pub_date')[:5]
+    output = ', '.join([q.question_text for q in latest_question_list])
+    return HttpResponse(output)
+해석 : /polls 페이지에 최근 질문으로 5개를 뽑아서 보여준다.
+
+2. 코드와 디자인을 분리하자.
+1) polls 디렉토리에 tempaltes라는 디렉토리를 생성
+templates 디렉토리는 템플릿을 찾을 때 이용될 것이다.
+2) [polls/views.py] 수정
+뒤에 작성했던 것은 views에서 바로 응답을 하는 것이였다면
+지금 수정하는 것은 views -> templates/index.html에서 응답을 하는 것이다.
+[ polls/views.py ]
+from django.template import loader
+def index(request):
+    latest_question_list = Question.objects.order_by('-pub_date')[:5]
+    template = loader.get_template('index.html')
+    context = {
+        'latest_question_list': latest_question_list,
+    }
+3. index.html 파일 작성
+[ polls/templates/index.html ]
+{% if latest_question_list %}
+    <ul>
+    {% for question in latest_question_list %}
+        <li><a href="/polls/{{ question.id }}/">{{ question.question_text }}</a></li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No polls are available.</p>
+{% endif %}
+
+
+
+
+
 
 
