@@ -311,7 +311,7 @@ Object를 클릭한다면 Question text / Date Published에 날짜, 시각이 �
 *관리 페이지에서 값을 수정하고 저장을 누를 시 history에 기록이 된다.
 
 
-### Chapter3 : views ###
+### Chapter4 : views ###
 
 15. 만들어볼 views
 - 질문 페이지 : 최근의 질문들 표시
@@ -380,8 +380,74 @@ def index(request):
 {% endif %}
 
 
+### Chapter5 : templates ###
+18. shortcuts.render 이용하기
+[ polls/views.py ] - 구 버전
+from django.template import loader
+def index(request):
+    latest_question_list = Question.objects.order_by('-pub_date')[:5]
+    template = loader.get_template('index.html')
+    context = {
+        'latest_question_list': latest_question_list,
+    }
+본 구문은 templates에 context를 채워서 결과를 HttpResponse object와 함꼐 돌려준다.
+이러한 구문은 자주 사용되어서 django.shortcuts의 render함수로 대체할 수 있다.
+[ polls/views.py ] - render을 이용한 버전
+from django.shortcuts import render
+def index(request):
+    latest_question_list = Question.objects.order_by('-pub_date')[:5]
+    context = {'latest_question_list': latest_question_list}
+    return render(request, 'index.html', context)
+
+[ render() 설명 ]
+rander(parameter1, parameter2, parameter3)
+parameter1 : request object
+parameter2 : templates name
+parameter3(선택적) : context인 dictionary object
+=>결과 : context로 표현된 tempaltes의 httpresponse object가 반한된다.
 
 
+19. 예외 만들기
+: 없는 detail page를 진입 시 404 error가 뜨게 하기
+
+1. 정석적인 404 error 구현
+[ polls/views.py ]
+def detail(request, question_id): #질문 페이지
+    try:
+        question = Question.objects.get(pk=question_id)
+        context = {'question': question}
+    except Question.DoesNotExist:
+        raise Http404("Question does not exits")
+    return render(request, 'detail.html', context)
+[ polls/templates/detail.html ] - 새로 생성
+{{ question }}
+
+검증 : /polls/(존재하지 않는 question_id 번호)를 작성해서 404Erorr와 작성한 Error문구가 뜨는지 확인한다.
+
+2. django.shortcuts의 get_object_or_404함수를 이용한 구현
+[ pols/views.py ]
+from django.shortcuts import import get_object_or_404, render
+def detail(request, question_id): #질문 페이지
+    question = get_object_or_404(Question, pk=question_id)
+    context = {'question': question}
+    return render(request, 'detail.html', context)
+본 방법을 쓰는 이유 : Model 계층을 View 계층에 연결하는 방법이기 때문에 -> django 설계의 목표는 약결합의 관리이기 때문
+* 약결합 : 각 프로세스마다 독립된 메모리를 가진 시스템이다.
+
+[ get_object_or_404() 설명 ]
+get_object_or_404(parameter1, parameter2)
+parameter1 : Django model
+parmaeter2 : 키워드
+=> 결과 : object가 존재하지 않을 경우 http404 error이 발생
 
 
+20. templates 시스템 사용하기
+* html 코드에서 사용되는 템플릿 문법(DTL, Django template 언어) : https://docs.djangoproject.com/ko/4.0/topics/templates/
+[ polls/templates/detail.html ]
+<h1>{{ question.question_text }}</h1>
+<ul>
+{% for choice in question.choice_set.all %}
+    <li>{{ choice.choice_text }}</li>
+{% endfor %}
+</ul>
 

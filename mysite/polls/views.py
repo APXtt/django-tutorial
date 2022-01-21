@@ -1,18 +1,18 @@
-from django.http import HttpRequest
+from django.http import Http404, HttpRequest
 from django.http.response import HttpResponse
 from .models import Question
 from django.template import loader
+from django.shortcuts import render, get_object_or_404
 
 def index(request):
     latest_question_list = Question.objects.order_by('-pub_date')[:5]
-    template = loader.get_template('index.html')
-    context = {
-        'latest_question_list': latest_question_list,
-    }
-    return HttpResponse(template.render(context, request))
+    context = {'latest_question_list': latest_question_list}
+    return render(request, 'index.html', context)
 
 def detail(request, question_id): #질문 페이지
-    return HttpResponse("You're looking at question %s." % question_id)
+    question = get_object_or_404(Question, pk=question_id)
+    context = {'question': question}
+    return render(request, 'detail.html', context)
 
 def results(request, question_id): #질문 결과 페이지
     return HttpResponse("You're looking at the results of question %s." % question_id)
