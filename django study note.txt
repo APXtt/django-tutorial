@@ -1,2 +1,2 @@
-DTL(Django Template 언어)
+DTL(Django Template Language)
 https://docs.djangoproject.com/ko/4.0/intro/tutorial03/

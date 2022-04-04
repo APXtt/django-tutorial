@@ -451,3 +451,18 @@ parmaeter2 : 키워드
 {% endfor %}
 </ul>
 
+
+21. 하드코딩 수정
+[polls/templates/index.html] (수정 전, 하드코딩)
+<li><a href="/polls/{{ question.id }}/">{{ question.question_text }}</a></li>
+[polls/templates/index.html] (수정 후)
+<li><a href="{% url 'detail' question.id %}">{{ question.question_text }}</a></li>
+하드코딩을 수정하는 이유 : 많은 템플릿을 갖는 프로젝트가 url을 바꾸는게 힘들어지기 때문이다.
+
+
+22. URL의 이름공간(namespace) 정하기
+실제 django 프로젝트에는 여러 앱들이 올 것인데, django는 이 앱들의 url을 namespace를 사용하여 식별합니다.
+[polls/urls.py] (추가)
+app_name = 'polls' 
+[polls/index.html]
+detail -> polls:detail로 변경
